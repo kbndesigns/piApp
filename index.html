@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#3B82F6">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Joolry Daily">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="https://joolry.in/cdn/shop/files/Joolry_Logo_160x.png?v=1661766461">
+  <link rel="apple-touch-icon" href="https://joolry.in/cdn/shop/files/Joolry_Logo_160x.png?v=1661766461">
+  <link rel="shortcut icon" href="https://joolry.in/cdn/shop/files/Joolry_Logo_160x.png?v=1661766461">
+  <title>Joolry Daily</title>
+
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://joolry.in">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <!-- External Assets -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <!-- ── App Config: GAS_URL aur constants — sirf yahan change karo ── -->
+  <script src="appconfig.js"></script>
+
+  <!-- Firebase client — live ver listener (Phase 2) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+
+  <!-- ── App Core: GAS bridge + date/string utilities ── -->
+  <script src="app.js"></script>
+  <!-- Early session check: prevents login screen flash when valid session exists -->
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem('joolry_session_v1');
+        if (raw) {
+          var s = JSON.parse(raw);
+          var validName = s && s.user && s.user.name && s.user.name !== 'User' && s.user.name !== 'Staff' && s.user.name.trim() !== '';
+          if (s && s.user && s.token && s.user.emp_code && validName && Date.now() < (s.exp || 0)) {
+            // Valid session found early — add pre-hidden class to sLogin
+            // This runs before DOMContentLoaded so we use document.write trick via style
+            // Instead, mark body with a class the CSS can pick up
+            document.documentElement.classList.add('has-session');
+          }
+        }
+      } catch (e) { }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="app.css?v=33">
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════════════════════ -->
+  <div class="scr on" id="sLogin">
+    <div class="login-grid"></div>
+
+    <!-- Mobile top brand (small screens only — CSS handles hide/show) -->
+    <div class="l-mob-brand">
+      <div class="l-mob-logo">
+        <img src="https://joolry.in/cdn/shop/files/Joolry_Logo_160x.png?v=1661766461" alt="Joolry"
+          onerror="this.parentElement.innerHTML='<span class=\'l-mob-txt\'>Joolry</span>'">
+      </div>
+    </div>
+
+    <div class="lbox">
+      <div class="l-logo-wrap" id="lDeskLogo">
+        <img src="https://joolry.in/cdn/shop/files/Joolry_Logo_160x.png?v=1661766461" alt="Joolry"
+          onerror="this.style.display='none';document.getElementById('lgFallback').style.display='flex'">
+        <div class="l-logo-fallback" id="lgFallback" style="display:none">JL</div>
+      </div>
+
+      <div class="l-title">Welcome back</div>
+      <div class="l-sub">Sign in to continue</div>
+
+      <div class="l-field">
+        <label>Email</label>
+        <input type="email" id="femail" placeholder="you@joolry.co.in" autocomplete="email"
+          onkeydown="if(event.key==='Enter')document.getElementById('fpass').focus()">
+        <span class="l-ico"><i class="fas fa-envelope"></i></span>
+      </div>
+
+      <div class="l-field">
+        <label>Password</label>
+        <input type="password" id="fpass" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')_doLogin()">
+        <span class="l-ico"><i class="fas fa-lock"></i></span>
+        <button type="button" class="l-eye" id="eyeToggle"
+          onclick="(function(){var i=document.getElementById('fpass'),e=document.getElementById('eyeToggle').querySelector('i');i.type=i.type==='password'?'text':'password';e.className=i.type==='password'?'fas fa-eye':'fas fa-eye-slash';})()"
+          aria-label="Toggle password visibility">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
+
+      <button class="l-btn" id="btnLogin" onclick="_doLogin()">
+        Sign In
+      </button>
+      <div class="l-err" id="loginErr"></div>
+      <div class="l-footer">© Joolry</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+     APP SCREEN
+═══════════════════════════════════════════════════════════ -->
+  <!-- Sidebar overlay (mobile tap-to-close) -->
+  <div class="sb-overlay" id="sbOverlay" onclick="_sbClose()"></div>
+
+  <!-- ── SPLASH LOADER — shown during getAllData, hidden once data arrives ── -->
+  <div id="fkSplash" style="display:none;position:fixed;inset:0;z-index:9999;
+    background:linear-gradient(150deg,#111111 0%,#2A2A2A 55%,#3D3D3D 100%);
+    flex-direction:column;align-items:center;justify-content:center;gap:0">
+    <div
+      style="animation:splashPop .5s cubic-bezier(.34,1.56,.64,1) both;display:flex;flex-direction:column;align-items:center;gap:20px">
+      <div style="position:relative;width:92px;height:92px">
+        <div style="position:absolute;inset:0;border-radius:50%;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.15)">
+        </div>
+        <div
+          style="position:absolute;inset:-5px;border-radius:50%;border:3.5px solid transparent;border-top-color:#111111;border-right-color:#B76E79;animation:fkLogoSpin .9s linear infinite">
+        </div>
+        <img src="https://joolry.in/cdn/shop/files/Joolry_Logo_160x.png?v=1661766461" alt="Joolry"
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:14px;border-radius:50%"
+          onerror="this.style.display='none'">
+      </div>
+      <div style="color:#fff;font-size:22px;font-weight:900;letter-spacing:-.4px;text-align:center;
+        text-shadow:0 2px 12px rgba(0,0,0,.2)">Joolry Daily App</div>
+      <div id="fkSplashMsg" style="color:rgba(255,255,255,.8);font-size:13.5px;font-weight:600;
+        text-align:center;letter-spacing:.2px;margin-top:4px">Loading your workspace…</div>
+      <div style="display:flex;gap:6px;margin-top:12px">
+        <div class="fk-dot" style="animation-delay:0s"></div>
+        <div class="fk-dot" style="animation-delay:.2s"></div>
+        <div class="fk-dot" style="animation-delay:.4s"></div>
+      </div>
+    </div>
+    <div style="position:absolute;bottom:40px;color:rgba(255,255,255,.45);font-size:11px">
+      © 2026 Joolry &nbsp;·&nbsp; All rights reserved
+    </div>
+  </div>
+
+  <div class="scr" id="sApp">
+    <!-- Pull-to-refresh indicator (mobile) -->
+    <div id="fkPtr"></div>
+    <!-- Global GAS call loading bar + chip so user always sees activity -->
+    <div id="fkLb"
+      style="position:fixed;top:0;left:0;right:0;height:3px;z-index:9999;background:linear-gradient(90deg,var(--P),var(--Pd),var(--T),var(--G),var(--Pd),var(--P));background-size:300% 100%;animation:loadBarSweep 1.4s linear infinite;opacity:0;transition:opacity .2s;pointer-events:none">
+    </div>
+    <div id="fkBusyChip"
+      style="position:fixed;top:12px;left:50%;transform:translateX(-50%) translateY(-120%);z-index:10000;background:#111827;color:#fff;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px;opacity:0;transition:transform .22s ease,opacity .22s ease;pointer-events:none">
+      <i class="fas fa-spinner fa-spin"></i><span>Processing…</span>
+    </div>
+
+    <!-- Mobile sidebar overlay -->
+    <div class="mob-ov" id="mobOv" onclick="_closeSb()"></div>
+
+    <!-- ────────── SIDEBAR ────────── -->
+    <aside class="sb" id="sb">
+      <div class="sb-hd">
+        <div class="sb-brand">
+          <img src="https://joolry.in/cdn/shop/files/Joolry_Logo_160x.png?v=1661766461" alt="Joolry"
+            onerror="this.style.display='none'">
+          <div>
+            <div class="sb-brand-txt">Joolry</div>
+            <div class="sb-brand-ver" style="display:none !important"></div>
+          </div>
+        </div>
+        <div class="sb-prof" onclick="_loadV('profile')">
+          <div class="sb-ava" id="sbAva">
+            <span id="sbAvaInitials">?</span>
+            <div class="online-dot"></div>
+          </div>
+          <div class="sb-prof-info">
+            <div class="sb-name" id="sbName">Joolry Staff</div>
+            <div class="sb-role" id="sbRole">Staff</div>
+          </div>
+          <i class="fas fa-chevron-right" style="font-size:10px;color:#475569;margin-left:auto;flex-shrink:0"></i>
+        </div>
+      </div>
+
+      <nav class="sb-nav" id="sbNav">
+
+        <!-- Main -->
+        <div class="nv-section">
+          <div class="nv-section-label">Main</div>
+          <div class="nv on" id="nv-dash" onclick="_loadV('dash')">
+            <i class="fas fa-chart-pie"></i> Dashboard
+            <span class="nv-tag">Home</span>
+          </div>
+          <div class="nv" id="nv-ann" onclick="_loadV('ann')">
+            <i class="fas fa-bullhorn"></i> Announcements
+            <span class="nv-badge" id="annBadge" style="display:none">0</span>
+          </div>
+        </div>
+
+        <!-- My Work -->
+        <div class="nv-section">
+          <div class="nv-section-label">My Work</div>
+          <div class="nv" id="nv-check" onclick="_loadV('check')">
+            <i class="fas fa-list-check"></i> Checklist
+          </div>
+          <div class="nv" id="nv-storecheck" onclick="_loadV('storecheck')">
+            <i class="fas fa-store"></i> Store Checklist
+          </div>
+          <div class="nv" id="nv-deleg" onclick="_loadV('deleg')">
+            <i class="fas fa-people-arrows"></i> Delegation
+          </div>
+          <div class="nv" id="nv-attend" onclick="_loadV('attend')">
+            <i class="fas fa-calendar-check"></i> Attendance
+          </div>
+        </div>
+
+        <!-- Manager section — hidden for staff -->
+        <div class="nv-section" id="mgrNav" style="display:none">
+          <div class="nv-section-label">Manager</div>
+          <div class="nv" id="nv-em" onclick="_loadV('em')">
+            <i class="fas fa-table-cells-large"></i> EM Dashboard
+          </div>
+          <div class="nv" id="nv-empdir" onclick="_loadV('empdir')">
+            <i class="fas fa-address-book"></i> Employee Directory
+          </div>
+          <div class="nv" id="nv-clana" onclick="_loadV('clana')">
+            <i class="fas fa-list-check"></i> Checklist Analytics
+          </div>
+          <div class="nv" id="nv-storeana" onclick="_loadV('storeana')">
+            <i class="fas fa-chart-bar"></i> Store Analytics
+          </div>
+          <div class="nv" id="nv-delana" onclick="_loadV('delana')">
+            <i class="fas fa-diagram-project"></i> Delegation Analytics
+          </div>
+          <div class="nv" id="nv-attana" onclick="_loadV('attana')">
+            <i class="fas fa-user-clock"></i> Attendance Analytics
+          </div>
+          <div class="nv" id="nv-payroll" onclick="_loadV('payroll')">
+            <i class="fas fa-file-invoice-dollar"></i> Salary Sheet
+          </div>
+        </div>
+
+        <hr class="nv-sep">
+
+        <div class="nv" id="nv-profile" onclick="_loadV('profile')">
+          <i class="fas fa-circle-user"></i> My Profile
+        </div>
+        <div class="nv" onclick="_setCacheToggle(!_cacheOk)" title="Toggle data cache" style="font-size:11px">
+          <i class="fas fa-database"></i>
+          <span id="cacheLbl">Cache: <span id="cacheState">auto</span></span>
+        </div>
+        <div class="nv nv-danger" onclick="_soShow()">
+          <i class="fas fa-right-from-bracket"></i> Sign Out
+        </div>
+      </nav>
+
+      <div class="sb-ft">
+        <div class="sb-ft-txt">Joolry Daily</div>
+        <div class="sb-ft-copy">&copy; 2026 Joolry. All rights reserved.</div>
+      </div>
+    </aside>
+
+    <!-- ────────── MAIN CONTENT ────────── -->
+    <div class="main" id="mainArea">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="tb-left">
+          <button class="ico-btn ham" id="hamBtn" onclick="_mobToggleSb()" title="Menu">
+            <i class="fas fa-bars"></i>
+          </button>
+          <button type="button" class="ico-btn sb-toggle" id="sbToggle" onclick="_toggleSbCollapse()"
+            title="Collapse sidebar">
+            <i class="fas fa-angles-left" id="sbToggleIco"></i>
+          </button>
+          <div class="tb-title-wrap">
+            <div class="tb-title" id="tbTitle">Dashboard</div>
+            <div class="tb-breadcrumb" id="tbDate"></div>
+          </div>
+        </div>
+        <div class="tb-right">
+          <!-- Quick search trigger -->
+          <div class="tb-search" onclick="_openGS()" role="button" title="Quick search (⌘K)">
+            <i class="fas fa-search"></i>
+            <span>Search anything...</span>
+            <kbd>⌘K</kbd>
+          </div>
+          <div class="tb-divider"></div>
+          <!-- Notification bell -->
+          <button class="ico-btn" id="ntfBtn" onclick="_toggleNtf()" title="Notifications">
+            <i class="fas fa-bell"></i>
+            <span class="ntf-dot" id="ntfDot" style="display:none"></span>
+          </button>
+          <!-- Dark mode toggle -->
+          <button class="ico-btn" onclick="_toggleDark()" title="Toggle dark mode">
+            <i class="fas fa-moon" id="darkIco"></i>
+          </button>
+          <!-- Refresh current view -->
+          <button class="ico-btn" onclick="_refresh()" title="Refresh page">
+            <i class="fas fa-rotate-right"></i>
+          </button>
+          <!-- Manager: clear GAS cache + force Firebase snapshot -->
+          <button class="ico-btn" id="tbCacheBtn" onclick="_forcePortalCacheClear()"
+            title="Clear cache & load latest data" style="display:none">
+            <i class="fas fa-rotate" id="tbCacheIco"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content pane -->
+      <div id="content"></div>
+    </div>
+  </div><!-- #sApp -->
+
+  <!-- ═══════════════════════════════════════════════════════════
+     OVERLAYS & GLOBAL DIALOGS
+═══════════════════════════════════════════════════════════ -->
+
+  <!-- Sign-out confirmation -->
+  <div class="so-ov" id="soOv" onclick="if(event.target===this)_soHide()">
+    <div class="so-box">
+      <div
+        style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg);border-radius:14px;border:1px solid var(--bdr);margin-bottom:16px;text-align:left">
+        <div
+          style="width:40px;height:40px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;flex-shrink:0">
+          <i class="fas fa-user" style="font-size:15px"></i>
+        </div>
+        <div style="min-width:0">
+          <div id="soUserName" style="font-size:14px;font-weight:800;color:var(--tx)">—</div>
+          <div id="soUserDept" style="font-size:12px;color:var(--tx2);margin-top:2px">Staff</div>
+        </div>
+      </div>
+      <div style="font-size:32px;margin-bottom:8px;text-align:center">👋</div>
+      <h3 style="text-align:center">Sign Out?</h3>
+      <p style="text-align:center;font-size:13px;color:var(--tx3)">You'll be returned to the login screen.</p>
+      <div class="so-btns">
+        <button class="btn btn-outline" onclick="_soHide()"><i class="fas fa-times"></i> Cancel</button>
+        <button class="btn btn-red" onclick="_signOut()"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal overlay + box -->
+  <div class="modal-ov" id="mOv" class="modal-ov" onclick="if(event.target===this)_closeModal()">
+    <div class="modal-box" id="modal" style="display:none">
+      <div class="modal-title" id="mTitle">Confirm</div>
+      <div class="modal-body" id="mBody"></div>
+      <div class="modal-foot" id="mFoot"></div>
+    </div>
+  </div>
+
+  <!-- Notification panel -->
+  <div class="ntf-panel" id="ntfPanel">
+    <div class="ntf-hd">
+      <div class="ntf-hd-title">
+        <i class="fas fa-bell" style="color:var(--O)"></i>
+        Notifications
+        <span class="ntf-count" id="ntfCnt" style="display:none">0</span>
+      </div>
+      <button class="btn btn-ghost btn-xs" onclick="_markAllRead()">Mark all read</button>
+    </div>
+    <div class="ntf-list" id="ntfList">
+      <div class="ntf-empty">
+        <i class="fas fa-bell-slash" style="font-size:22px;display:block;margin-bottom:10px;opacity:.4"></i>
+        No notifications yet
+      </div>
+    </div>
+    <div class="ntf-ft">
+      <button class="btn btn-ghost btn-xs" style="width:100%;color:var(--tx2)" onclick="_clearNtfs()">
+        <i class="fas fa-trash"></i> Clear all
+      </button>
+    </div>
+  </div>
+
+  <!-- Global search overlay -->
+  <div class="gs-overlay" id="gsOv" onclick="if(event.target===this)_closeGS()">
+    <div class="gs-dialog">
+      <div class="gs-inp-wrap">
+        <i class="fas fa-search"></i>
+        <input class="gs-inp" id="gsInput" placeholder="Search employees, tasks, announcements..."
+          oninput="_gsSearch(this.value)" onkeydown="_gsKey(event)" autocomplete="off">
+        <button class="gs-esc" onclick="_closeGS()">ESC</button>
+      </div>
+      <div class="gs-results" id="gsResults">
+        <div class="gs-empty">
+          <i class="fas fa-search"></i>
+          Start typing to search...
+        </div>
+      </div>
+      <div class="gs-ft">
+        <div class="gs-hint"><kbd class="gs-kbd">↑↓</kbd> Navigate</div>
+        <div class="gs-hint"><kbd class="gs-kbd">↵</kbd> Select</div>
+        <div class="gs-hint"><kbd class="gs-kbd">ESC</kbd> Close</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT ENGINE
+═══════════════════════════════════════════════════════════ -->
+  <script src="core.js?v=33"></script>
+  <!-- ── Mobile Bottom Navigation ── -->
+  <nav class="mob-nav" id="mobNav" aria-label="Mobile navigation" style="display:none">
+    <div class="mob-nav-inner">
+      <button class="mob-nav-item active" id="mbn-home" onclick="_mbNav('dash')" aria-label="Home">
+        <span class="mob-nav-pill"><i class="fas fa-house"></i></span>
+        <span>Home</span>
+      </button>
+      <button class="mob-nav-item" id="mbn-check" onclick="_mbNav('check')" aria-label="Tasks">
+        <span class="mob-nav-pill"><i class="fas fa-list-check"></i></span>
+        <span>Tasks</span>
+      </button>
+      <button class="mob-nav-item" id="mbn-attend" onclick="_mbNav('attend')" aria-label="Attend">
+        <span class="mob-nav-pill"><i class="fas fa-clock"></i></span>
+        <span>Attend</span>
+      </button>
+      <button class="mob-nav-item" id="mbn-deleg" onclick="_mbNav('deleg')" aria-label="Delegate">
+        <span class="mob-nav-pill"><i class="fas fa-people-arrows"></i></span>
+        <span>Delegate</span>
+      </button>
+      <button class="mob-nav-item" id="mbn-profile" onclick="_mbNav('profile')" aria-label="Profile">
+        <span class="mob-nav-pill"><i class="fas fa-circle-user"></i></span>
+        <span>Me</span>
+      </button>
+    </div>
+  </nav>
+  <div class="safe-bot"></div>
+</body>
+
+</html>
