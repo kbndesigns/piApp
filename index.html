@@ -2554,19 +2554,40 @@
     }
 
     function loadStaffAndAudit() {
+      // Staff logs
       run('getStaffLogs', [TOKEN], function (res) {
-        if (res && res.success) {
-          DATA.staffLogs = res.staffLogs || [];
-          filteredStaff = DATA.staffLogs.slice();
+        if (res && res.success && res.staffLogs) {
+          DATA.staffLogs = res.staffLogs;
+          filteredStaff = res.staffLogs.slice();
           staffPage = 1;
-          renderStaffPage();
+          var tb = document.getElementById('staffBody');
+          if (tb) {
+            if (!filteredStaff.length) {
+              tb.innerHTML = '<tr><td colspan="10"><div class="empty"><p>No staff logs</p></div></td></tr>';
+            } else {
+              tb.innerHTML = filteredStaff.map(function (s) {
+                var att = s.Attachment ? '<a href="' + esc(s.Attachment) + '" target="_blank">View</a>' : '—';
+                return '<tr><td>' + esc(s.Id) + '</td><td>' + esc(s.Date) + '</td><td>' + esc(s.PINumber) + '</td><td>' + esc(s.ClientName) + '</td><td>' + esc(s.Payment) + '</td><td class="amt">' + fmtINR(s.Amount) + '</td><td>' + esc(s.PaymentMode) + '</td><td>' + att + '</td><td>' + esc(s.Notes || '—') + '</td><td></td></tr>';
+              }).join('');
+            }
+          }
         }
       });
+      // Audit logs (Owner only)
       if (USER && String(USER.role || '').toLowerCase() === 'owner') {
         run('getAuditLogs', [TOKEN], function (res) {
-          if (res && res.success) {
-            DATA.auditLogs = res.logs || [];
-            renderLogs();
+          if (res && res.success && res.logs) {
+            DATA.auditLogs = res.logs;
+            var tb = document.getElementById('logsBody');
+            if (tb) {
+              if (!res.logs.length) {
+                tb.innerHTML = '<tr><td colspan="7"><div class="empty"><p>No audit logs</p></div></td></tr>';
+              } else {
+                tb.innerHTML = res.logs.map(function (l) {
+                  return '<tr><td>' + esc(l.Timestamp) + '</td><td>' + esc(l.UserEmail) + '</td><td>' + esc(l.PIId) + '</td><td>' + esc(l.Field) + '</td><td>' + esc(l.OldValue || '—') + '</td><td>' + esc(l.NewValue || '—') + '</td><td>' + esc(l.Action) + '</td></tr>';
+                }).join('');
+              }
+            }
           }
         });
       }
