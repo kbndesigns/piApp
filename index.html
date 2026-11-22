@@ -1481,7 +1481,7 @@
       max-height: min(70vh, 640px);
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
-      position: relative;
+      width: 100%;
     }
 
     .table-wrap::-webkit-scrollbar {
@@ -1495,14 +1495,20 @@
     }
 
     table {
-      width: max-content;
+      width: 100% !important;
       min-width: 100%;
       border-collapse: collapse;
       font-size: 13.5px;
+      table-layout: auto;
     }
 
     th, td {
-      white-space: nowrap;
+      white-space: normal !important;
+      word-wrap: break-word;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      max-width: 280px;
+      vertical-align: top;
     }
 
     th {
@@ -1512,6 +1518,7 @@
       background: var(--table-head, #f8fafc);
       cursor: pointer;
       user-select: none;
+      white-space: nowrap !important;
     }
 
     [data-theme="dark"] th,
