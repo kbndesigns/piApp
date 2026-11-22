@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'GET only' });
 
   try {
-    const doc = await db.collection('pi_snapshots').doc('latest').get();
+    const doc = await db.collection('piapp_snap').doc('latest').get();
     if (!doc.exists) {
       return res.status(200).json({ success: false, message: 'No snapshot yet. Trigger a write or manual sync.' });
     }
