@@ -2557,14 +2557,16 @@
       run('getStaffLogs', [TOKEN], function (res) {
         if (res && res.success) {
           DATA.staffLogs = res.staffLogs || [];
-          applyStaffFilters();
+          filteredStaff = DATA.staffLogs.slice();
+          staffPage = 1;
+          renderStaffPage();
         }
       });
       if (USER && String(USER.role || '').toLowerCase() === 'owner') {
         run('getAuditLogs', [TOKEN], function (res) {
           if (res && res.success) {
             DATA.auditLogs = res.logs || [];
-            if (typeof renderLogs === 'function') renderLogs();
+            renderLogs();
           }
         });
       }
@@ -2878,6 +2880,10 @@
       var nav = document.querySelector('.nav-item[data-view="' + view + '"]'); if (nav) nav.classList.add('active');
       document.getElementById('pageTitle').textContent = {dashboard: 'Dashboard', pis: 'Proforma Invoices', payments: 'Payments', stafflog: 'Staff Payment Log', analytics: 'Analytics', users: 'Users', settings: 'Settings', logs: 'Audit Logs'}[view] || view;
       closeMobileSidebar();
+      // Refresh data when viewing staff or logs
+      if (view === 'stafflog' || view === 'logs') {
+        loadStaffAndAudit();
+      }
     }
     function toggleSidebarCollapse() {var sb = document.getElementById('sidebar'); sb.classList.toggle('collapsed'); localStorage.setItem('kbn_sidebar', sb.classList.contains('collapsed') ? 'collapsed' : 'open');}
     function toggleMobileSidebar() {document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobileOverlay').classList.toggle('show');}
