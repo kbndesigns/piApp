@@ -3348,8 +3348,24 @@
         data.Attachment = url || '';
         run('createStaffLog', [TOKEN, data], function (res) {
           window._submitting = false;
-          if (res && res.success) {closeModal(); showToast('Staff log saved: ' + res.id); staffUploadData = null; loadData(true);}
-          else {showToast((res && res.message) || 'Failed', true); lockModalButtons(false);}
+          if (res && res.success) {
+            closeModal();
+            showToast('Staff log saved: ' + res.id);
+            staffUploadData = null;
+            // Force reload from GAS so new entry appears
+            run('getInitialData', [TOKEN], function (fresh) {
+              if (fresh && fresh.success) {
+                DATA = fresh;
+                USER = fresh.user || USER;
+                try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(fresh)); } catch (e) {}
+                applyStaffFilters();
+                if (typeof renderLogs === 'function') renderLogs();
+              }
+            });
+          } else {
+            showToast((res && res.message) || 'Failed to save staff log', true);
+            lockModalButtons(false);
+          }
         });
       }
       if (staffUploadData) {
