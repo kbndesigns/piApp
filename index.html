@@ -2585,15 +2585,6 @@
       if (typeof renderLogs === 'function') renderLogs();
       loadStaffAndAudit();
     }
-      renderRecent();
-      renderOutstanding();
-      renderStatusBreakdown();
-      renderUsers();
-      renderSettings();
-      applyStaffFilters();
-      renderAnalytics();
-      if (typeof renderLogs === 'function') renderLogs();
-    }
 
     function populateFilterDropdowns() {
       var o = DATA.filterOptions || {};
