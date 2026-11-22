@@ -1,16 +1,10 @@
 {
   "regions": ["bom1"],
   "functions": {
-    "api/*.js": {
-      "maxDuration": 60
-    }
+    "api/*.js": { "maxDuration": 60 }
   },
   "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    }
+    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/(manifest\\.json|sw\\.js|icon-.*\\.png)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] }
   ]
 }
