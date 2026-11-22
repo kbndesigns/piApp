@@ -1,36 +1,51 @@
-# KBN Designs — PI Payment Tracking
+# KBN Designs — PI Payment Tracking (PWA)
 
-Vercel frontend + Google Apps Script backend.
+Vercel frontend + Firebase reads + GAS writes.
 
-## Structure
-- `index.html` — Frontend (login, dashboard, PI, payments, staff log, analytics)
-- `api/rpc.js` — Vercel serverless proxy to GAS
-- `Code.gs` — GAS backend (deploy as Web App)
-- `vercel.json` — Vercel config
+## Architecture
+- **Reads**: `/api/snapshot` → Firebase Firestore (`pi_snapshots/latest`) → instant
+- **Writes**: `/api/rpc` → GAS → Sheet (source of truth)
+- **Client**: localStorage cache for instant open + background refresh
+- **PWA**: installable, offline shell
 
-## Deploy Steps
+## Files
+- `index.html` — Frontend (PWA meta, filters fixed, filtered print/CSV)
+- `manifest.json` — PWA manifest
+- `sw.js` — Service worker
+- `api/snapshot.js` — Firebase read endpoint
+- `api/rpc.js` — GAS proxy for writes
+- `Code.gs` — GAS backend (includes getSnapshot)
 
-### 1. Google Apps Script
-1. Create new GAS project
-2. Paste `Code.gs`
-3. Set Script Properties:
-   - `SPREADSHEET_ID` = your Google Sheet ID
-   - `API_SECRET` = any strong random string (same value in Vercel)
-4. Deploy as Web App:
-   - Execute as: Me
-   - Who has access: Anyone
-5. Copy the Web App URL → this becomes `GAS_URL`
+## Setup
 
-### 2. Vercel
-1. Push this folder to GitHub
-2. Import project in Vercel
-3. Add Environment Variables:
-   - `GAS_URL` = the Web App URL from step 1
-   - `GAS_SECRET` = same value as `API_SECRET` in GAS
-4. Deploy
+### 1. Firebase
+- Create project, enable Firestore
+- Create service account → download JSON
+- Set Vercel env:
+  - `FIREBASE_PROJECT_ID`
+  - `FIREBASE_CLIENT_EMAIL`
+  - `FIREBASE_PRIVATE_KEY` (escape newlines as `\n`)
 
-## Notes
-- All business logic stays in GAS (sheet as database)
-- Frontend is pure static HTML served by Vercel
-- Session tokens are still managed by GAS CacheService
-- Attachment folders are hardcoded in Code.gs (update if needed)
+### 2. GAS
+- Deploy `Code.gs` as Web App
+- Script Properties: `SPREADSHEET_ID`, `API_SECRET`
+- After any write, call `getSnapshot` and save result to Firestore `pi_snapshots/latest`
+  (can be done from Vercel after successful rpc, or scheduled)
+
+### 3. Vercel
+- Push this folder
+- Env vars:
+  - `GAS_URL`, `GAS_SECRET`
+  - Firebase vars above
+- Deploy
+
+### 4. Icons
+Add `icon-192.png`, `icon-512.png`, `icon-180.png` in root (or use any logo).
+
+## Behavior
+- App opens instantly from localStorage cache
+- Background fetch from `/api/snapshot` updates data
+- After Create/Update/Delete → forces fresh load from GAS and updates cache
+- Print / CSV buttons export **currently filtered rows only**
+- Tables scroll both horizontally and vertically
+- Installable as PWA
