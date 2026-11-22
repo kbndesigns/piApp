@@ -3657,20 +3657,6 @@
       { label: 'Payment Date', key: 'PaymentDate' },
       { label: 'Notes', key: 'Notes' }
     ];
-          var t = cell.textContent.replace(/\s+/g, ' ').trim();
-          if (t.indexOf(',') >= 0 || t.indexOf('"') >= 0) t = '"' + t.replace(/"/g, '""') + '"';
-          cols.push(t);
-        });
-        if (cols.length) lines.push(cols.join(','));
-      });
-      if (lines.length < 2) {showToast('No data to export', true); return;}
-      var blob = new Blob(['\ufeff' + lines.join('\n')], {type: 'text/csv;charset=utf-8;'});
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = (filename || 'export') + '_' + new Date().toISOString().slice(0, 10) + '.csv';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      showToast('CSV downloaded');
-    }
 
     function printTableSection(cardSelector, title) {
       var card = document.querySelector(cardSelector);
