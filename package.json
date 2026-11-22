@@ -1,12 +1,8 @@
 {
-  "name": "taskapp",
+  "name": "kbn-pi-payment",
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "firebase-admin": "^12.7.0",
-    "@vercel/functions": "^1.5.0"
+    "node": ">=18"
   }
 }
