@@ -2553,11 +2553,38 @@
       }
     }
 
+    function loadStaffAndAudit() {
+      run('getStaffLogs', [TOKEN], function (res) {
+        if (res && res.success) {
+          DATA.staffLogs = res.staffLogs || [];
+          applyStaffFilters();
+        }
+      });
+      if (USER && String(USER.role || '').toLowerCase() === 'owner') {
+        run('getAuditLogs', [TOKEN], function (res) {
+          if (res && res.success) {
+            DATA.auditLogs = res.logs || [];
+            if (typeof renderLogs === 'function') renderLogs();
+          }
+        });
+      }
+    }
+
     function renderAll() {
       populateFilterDropdowns();
       applyPIFilters(true);
       applyPayFilters(true);
       renderMetrics();
+      renderRecent();
+      renderOutstanding();
+      renderStatusBreakdown();
+      renderUsers();
+      renderSettings();
+      applyStaffFilters();
+      renderAnalytics();
+      if (typeof renderLogs === 'function') renderLogs();
+      loadStaffAndAudit();
+    }
       renderRecent();
       renderOutstanding();
       renderStatusBreakdown();
