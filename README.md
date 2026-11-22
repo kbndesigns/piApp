@@ -42,10 +42,24 @@ Vercel frontend + Firebase reads + GAS writes.
 ### 4. Icons
 Add `icon-192.png`, `icon-512.png`, `icon-180.png` in root (or use any logo).
 
-## Behavior
-- App opens instantly from localStorage cache
-- Background fetch from `/api/snapshot` updates data
-- After Create/Update/Delete → forces fresh load from GAS and updates cache
-- Print / CSV buttons export **currently filtered rows only**
-- Tables scroll both horizontally and vertically
-- Installable as PWA
+## Firebase Sync (auto)
+
+After any Create/Update/Delete, GAS calls `_notifyVercelSync()` which hits:
+`https://<your-app>.vercel.app/api/sync?bump=1&secret=<SYNC_SECRET>`
+
+Vercel `/api/sync` then:
+1. Calls GAS `getSnapshot`
+2. Saves to Firestore:
+   - `piapp_snap/latest`  (full data)
+   - `piapp_meta/sync`    (last sync time + counts)
+
+### Script Properties needed in GAS
+- `VERCEL_SYNC_URL` = `https://pi.kbndesigns.com/api/sync`
+- `SYNC_SECRET` = any strong random string (same as Vercel env `SYNC_SECRET`)
+
+### Vercel env
+- `GAS_URL`, `GAS_SECRET`
+- `SYNC_SECRET` (same as GAS)
+- `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`
+
+After first write (or manual call to `/api/sync?bump=1&secret=...`), Firebase collections will appear.
