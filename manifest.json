@@ -1,24 +1,19 @@
 {
-  "name": "Joolry Daily",
-  "short_name": "Joolry",
-  "description": "Joolry Daily — Attendance, Tasks, Delegation & Analytics",
-  "start_url": "./index.html?pwa=1",
+  "name": "KBN PI Payment Tracking",
+  "short_name": "KBN PI",
+  "description": "PI Wise Payment Tracking — KBN Designs",
+  "start_url": "/?source=pwa",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#111111",
-  "theme_color": "#111111",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
   "lang": "en-IN",
-  "scope": "./",
+  "scope": "/",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "apple-touch-icon" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "apple-touch-icon" }
   ],
-  "categories": ["business", "productivity"],
-  "shortcuts": [
-    { "name": "Dashboard",  "url": "./index.html?v=dash",   "icons": [{"src":"icon-192.png","sizes":"192x192"}] },
-    { "name": "Checklist",  "url": "./index.html?v=check",  "icons": [{"src":"icon-192.png","sizes":"192x192"}] },
-    { "name": "Attendance", "url": "./index.html?v=attend", "icons": [{"src":"icon-192.png","sizes":"192x192"}] }
-  ],
+  "categories": ["business", "finance", "productivity"],
   "prefer_related_applications": false
 }
