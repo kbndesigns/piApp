@@ -5,6 +5,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>KBN Designs — PI Payment Tracking</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="KBN PI" />
+  <link rel="apple-touch-icon" href="/icon-180.png" />
+  <link rel="icon" type="image/png" href="/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -1470,25 +1478,31 @@
     .table-wrap {
       overflow-x: auto !important;
       overflow-y: auto !important;
-      max-height: min(60vh, 520px);
+      max-height: min(70vh, 640px);
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
+      position: relative;
     }
 
     .table-wrap::-webkit-scrollbar {
-      height: 8px;
-      width: 8px;
+      height: 10px;
+      width: 10px;
     }
 
     .table-wrap::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 4px;
+      background: #94a3b8;
+      border-radius: 6px;
     }
 
     table {
-      width: 100%;
+      width: max-content;
+      min-width: 100%;
       border-collapse: collapse;
-      min-width: 720px;
+      font-size: 13.5px;
+    }
+
+    th, td {
+      white-space: nowrap;
     }
 
     th {
@@ -1498,7 +1512,6 @@
       background: var(--table-head, #f8fafc);
       cursor: pointer;
       user-select: none;
-      white-space: nowrap;
     }
 
     [data-theme="dark"] th,
@@ -1894,13 +1907,13 @@
               <button class="btn btn-ghost btn-sm" onclick="clearPIFilters()">Clear</button>
             </div>
             <div class="table-toolbar no-print">
-              <button type="button" class="btn-tool" onclick="printTableSection('#card-pis','Proforma Invoices')"><svg
+              <button type="button" class="btn-tool" onclick="printFiltered(filteredPIs, PI_COLS, 'Proforma Invoices')"><svg
                   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="6 9 6 2 18 2 18 9" />
                   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                   <rect x="6" y="14" width="12" height="8" />
                 </svg>Print</button>
-              <button type="button" class="btn-tool" onclick="exportTableCSV('#card-pis table','PI_List')"><svg
+              <button type="button" class="btn-tool" onclick="exportFilteredCSV(filteredPIs, PI_COLS, 'PI_List')"><svg
                   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
@@ -1971,13 +1984,13 @@
               <button class="btn btn-ghost btn-sm" onclick="clearPayFilters()">Clear</button>
             </div>
             <div class="table-toolbar no-print">
-              <button type="button" class="btn-tool" onclick="printTableSection('#card-payments','Payments')"><svg
+              <button type="button" class="btn-tool" onclick="printFiltered(filteredPays, PAY_COLS, 'Payments')"><svg
                   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="6 9 6 2 18 2 18 9" />
                   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                   <rect x="6" y="14" width="12" height="8" />
                 </svg>Print</button>
-              <button type="button" class="btn-tool" onclick="exportTableCSV('#card-payments table','Payments')"><svg
+              <button type="button" class="btn-tool" onclick="exportFilteredCSV(filteredPays, PAY_COLS, 'Payments')"><svg
                   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
@@ -2436,7 +2449,7 @@
       run('authenticateUser', [email, pass], function (res) {
         btn.disabled = false; btn.textContent = 'Sign in';
         if (!res || !res.success) {err.textContent = (res && res.message) || 'Login failed'; err.className = 'login-error show'; return;}
-        TOKEN = res.token; USER = res.user; localStorage.setItem('kbn_token', TOKEN); showApp(); loadData();
+        TOKEN = res.token; USER = res.user; localStorage.setItem('kbn_token', TOKEN); showApp(); loadData(true);
       });
       return false;
     }
@@ -2481,18 +2494,71 @@
       if (window.innerWidth > 900 && localStorage.getItem('kbn_sidebar') === 'collapsed') document.getElementById('sidebar').classList.add('collapsed');
     }
 
-    function loadData() {
-      run('getInitialData', [TOKEN], function (res) {
-        if (!res || !res.success) {
-          if (res && res.message && res.message.indexOf('expired') !== -1) {handleLogout(); showToast('Session expired', true);}
-          else showToast((res && res.message) || 'Failed to load', true);
-          return;
-        }
-        USER = res.user; DATA = res; showApp();
-        populateFilterDropdowns(); applyPIFilters(); applyPayFilters();
-        renderMetrics(); renderRecent(); renderOutstanding(); renderStatusBreakdown(); renderUsers(); renderSettings(); applyStaffFilters(); renderAnalytics();
-        if (typeof renderLogs === 'function') renderLogs();
-      });
+    function loadData(forceGas) {
+      // Instant: show cached snapshot first (unless forcing fresh from GAS)
+      if (!forceGas) {
+        try {
+          var cached = localStorage.getItem('kbn_pi_cache_v1');
+          if (cached) {
+            var parsed = JSON.parse(cached);
+            if (parsed && parsed.success) {
+              USER = parsed.user || USER;
+              DATA = parsed;
+              showApp();
+              renderAll();
+            }
+          }
+        } catch (e) {}
+      }
+
+      var url = forceGas ? null : '/api/snapshot';
+      if (url) {
+        fetch(url)
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res && res.success) {
+              USER = res.user || USER;
+              DATA = res;
+              try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(res)); } catch (e) {}
+              showApp();
+              renderAll();
+            } else {
+              fetchFromGas();
+            }
+          })
+          .catch(function () { fetchFromGas(); });
+      } else {
+        fetchFromGas();
+      }
+
+      function fetchFromGas() {
+        run('getInitialData', [TOKEN], function (gasRes) {
+          if (gasRes && gasRes.success) {
+            USER = gasRes.user;
+            DATA = gasRes;
+            try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(gasRes)); } catch (e) {}
+            showApp();
+            renderAll();
+          } else if (!DATA.pis || !DATA.pis.length) {
+            showToast((gasRes && gasRes.message) || 'Failed to load', true);
+          }
+        });
+      }
+    }
+
+    function renderAll() {
+      populateFilterDropdowns();
+      applyPIFilters(true);
+      applyPayFilters(true);
+      renderMetrics();
+      renderRecent();
+      renderOutstanding();
+      renderStatusBreakdown();
+      renderUsers();
+      renderSettings();
+      applyStaffFilters();
+      renderAnalytics();
+      if (typeof renderLogs === 'function') renderLogs();
     }
 
     function populateFilterDropdowns() {
@@ -2907,7 +2973,7 @@
       lockModalButtons(true, 'Saving...');
       run('createPI', [TOKEN, data], function (res) {
         window._submitting = false;
-        if (res && res.success) {closeModal(); showToast('PI created: ' + (res.piNumber || res.id)); loadData();}
+        if (res && res.success) {closeModal(); showToast('PI created: ' + (res.piNumber || res.id)); loadData(true);}
         else {showToast((res && res.message) || 'Failed', true); lockModalButtons(false);}
       });
     }
@@ -2994,7 +3060,7 @@
               renderPIsPage();
               renderMetrics(); renderRecent(); renderOutstanding(); renderStatusBreakdown();
             } else {
-              loadData();
+              loadData(true);
             }
           });
         } else {
@@ -3123,7 +3189,7 @@
           if (res && res.success) {
             closeModal();
             showToast('Payment recorded: ' + res.id);
-            loadData();
+            loadData(true);
           } else {
             showToast((res && res.message) || 'Failed', true);
             lockModalButtons(false);
@@ -3156,7 +3222,7 @@
       var btn = document.getElementById('btnConfirmDelPI');
       if (btn) {btn.disabled = true; btn.textContent = 'Deleting...';}
       run('deletePI', [TOKEN, id], function (res) {
-        if (res && res.success) {closeModal(); showToast('PI deleted'); loadData();}
+        if (res && res.success) {closeModal(); showToast('PI deleted'); loadData(true);}
         else {showToast((res && res.message) || 'Failed', true); if (btn) {btn.disabled = false; btn.textContent = 'Delete';} }
       });
     }
@@ -3170,7 +3236,7 @@
       lockModalButtons(true, 'Deleting...');
       run('deletePayment', [TOKEN, payId], function (res) {
         window._submitting = false;
-        if (res && res.success) {closeModal(); showToast('Payment deleted'); loadData();}
+        if (res && res.success) {closeModal(); showToast('Payment deleted'); loadData(true);}
         else {showToast((res && res.message) || 'Failed', true); lockModalButtons(false);}
       });
     }
@@ -3275,7 +3341,7 @@
         data.Attachment = url || '';
         run('createStaffLog', [TOKEN, data], function (res) {
           window._submitting = false;
-          if (res && res.success) {closeModal(); showToast('Staff log saved: ' + res.id); staffUploadData = null; loadData();}
+          if (res && res.success) {closeModal(); showToast('Staff log saved: ' + res.id); staffUploadData = null; loadData(true);}
           else {showToast((res && res.message) || 'Failed', true); lockModalButtons(false);}
         });
       }
@@ -3296,7 +3362,7 @@
       lockModalButtons(true, 'Deleting...');
       run('deleteStaffLog', [TOKEN, id], function (res) {
         window._submitting = false;
-        if (res && res.success) {closeModal(); showToast('Deleted'); loadData();}
+        if (res && res.success) {closeModal(); showToast('Deleted'); loadData(true);}
         else {showToast((res && res.message) || 'Failed', true); lockModalButtons(false);}
       });
     }
@@ -3524,15 +3590,73 @@
       });
     }
 
-    function exportTableCSV(tableSelector, filename) {
-      var table = document.querySelector(tableSelector);
-      if (!table) {showToast('Table not found', true); return;}
-      var lines = [];
-      table.querySelectorAll('tr').forEach(function (tr) {
-        if (tr.querySelector('.empty')) return;
-        var cols = [];
-        tr.querySelectorAll('th,td').forEach(function (cell) {
-          if (cell.classList.contains('actions') || cell.querySelector('.actions')) return;
+    function exportFilteredCSV(rows, columns, filename) {
+      if (!rows || !rows.length) { showToast('No data to export', true); return; }
+      var header = columns.map(function (c) { return c.label; });
+      var lines = [header.join(',')];
+      rows.forEach(function (r) {
+        var cols = columns.map(function (c) {
+          var v = typeof c.value === 'function' ? c.value(r) : (r[c.key] || '');
+          v = String(v == null ? '' : v).replace(/"/g, '""');
+          if (v.indexOf(',') >= 0 || v.indexOf('"') >= 0 || v.indexOf('\n') >= 0) v = '"' + v + '"';
+          return v;
+        });
+        lines.push(cols.join(','));
+      });
+      var blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (filename || 'export') + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      showToast('CSV downloaded (' + rows.length + ' rows)');
+    }
+
+    function printFiltered(rows, columns, title) {
+      if (!rows || !rows.length) { showToast('No data to print', true); return; }
+      var th = columns.map(function (c) { return '<th>' + esc(c.label) + '</th>'; }).join('');
+      var trs = rows.map(function (r) {
+        return '<tr>' + columns.map(function (c) {
+          var v = typeof c.value === 'function' ? c.value(r) : (r[c.key] || '');
+          return '<td>' + esc(v) + '</td>';
+        }).join('') + '</tr>';
+      }).join('');
+      var w = window.open('', '_blank', 'width=1100,height=700');
+      if (!w) { showToast('Allow pop-ups to print', true); return; }
+      w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
+        '<style>body{font-family:system-ui,sans-serif;padding:24px;font-size:12px;color:#0f172a}h1{font-size:16px;margin:0 0 8px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e2e8f0;padding:6px 8px;text-align:left}th{background:#f8fafc;font-size:11px;text-transform:uppercase}</style></head><body>' +
+        '<h1>KBN Designs — ' + esc(title) + '</h1>' +
+        '<div style="color:#64748b;font-size:11px;margin-bottom:12px">Printed: ' + new Date().toLocaleString('en-IN') + (USER ? ' · ' + esc(USER.email) : '') + ' · ' + rows.length + ' rows</div>' +
+        '<table><thead><tr>' + th + '</tr></thead><tbody>' + trs + '</tbody></table>' +
+        '<script>window.onload=function(){window.print()}<\/script></body></html>');
+      w.document.close();
+    }
+
+    // Column definitions for filtered exports
+    var PI_COLS = [
+      { label: 'Id', key: 'Id' },
+      { label: 'Date', key: 'Date' },
+      { label: 'PI', key: 'PI' },
+      { label: 'Order No', key: 'OrderNumber' },
+      { label: 'Lead Id', key: 'LeadId' },
+      { label: 'Client', key: 'ClientName' },
+      { label: 'Sales 1', key: 'SalesPerson1' },
+      { label: 'Sales 2', key: 'SalesPerson2' },
+      { label: 'PI Amount', value: function (p) { return p.PIAmount; } },
+      { label: 'Received', value: function (p) { return p.TotalReceived; } },
+      { label: 'Remaining', value: function (p) { return p.Remaining; } },
+      { label: 'Status', key: 'Status' },
+      { label: 'Invoice No', key: 'InvoiceNumber' },
+      { label: 'Invoice Date', key: 'InvoiceDate' },
+      { label: 'Notes', key: 'Notes' }
+    ];
+    var PAY_COLS = [
+      { label: 'Pay ID', key: 'PayId' },
+      { label: 'PI ID', key: 'PI' },
+      { label: 'Client', key: 'ClientName' },
+      { label: 'Amount', value: function (p) { return p.AmountReceived; } },
+      { label: 'Payment Date', key: 'PaymentDate' },
+      { label: 'Notes', key: 'Notes' }
+    ];
           var t = cell.textContent.replace(/\s+/g, ' ').trim();
           if (t.indexOf(',') >= 0 || t.indexOf('"') >= 0) t = '"' + t.replace(/"/g, '""') + '"';
           cols.push(t);
@@ -3680,6 +3804,13 @@
 
     (function init() {initTheme(); if (TOKEN) {showApp(); loadData();} })();
 
+    // PWA: register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
+      });
+    }
+
 
     function openEditPayment(payId) {
       if (USER && String(USER.role || '').toLowerCase() === 'purchase') {
@@ -3719,7 +3850,7 @@
         if (res && res.success) {
           closeModal();
           showToast('Payment updated');
-          loadData();
+          loadData(true);
         } else {
           showToast((res && res.message) || 'Failed', true);
           lockModalButtons(false);
