@@ -2534,6 +2534,8 @@
     }
 
 function loadData(forceGas) {
+// Force GAS until snapshot is fixed
+  forceGas = true;
   if (!forceGas) {
     try {
       var cached = localStorage.getItem('kbn_pi_cache_v1');
