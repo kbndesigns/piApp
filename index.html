@@ -2588,17 +2588,31 @@ function loadData(forceGas) {
     fetchFromGas();
   }
 
-  function fetchFromGas() {
-    run('getInitialData', [TOKEN], function (gasRes) {
-      if (gasRes && gasRes.success) {
-        DATA = gasRes;
-        try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(gasRes)); } catch (e) {}
-        renderAll();
-      }
-    });
-  }
+// In loadData or wherever token validation fails
+function fetchFromGas() {
+  run('getInitialData', [TOKEN], function (gasRes) {
+    if (gasRes && gasRes.success) {
+      DATA = gasRes;
+      localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(gasRes));
+      renderAll();
+    } else if (gasRes && gasRes.message && gasRes.message.indexOf('expired') !== -1) {
+      // Don't auto logout — just show toast
+      showToast('Session refresh needed', true);
+    }
+  });
+}
 }
 
+function logout() {
+  localStorage.removeItem('kbn_pi_token');
+  localStorage.removeItem('kbn_pi_user');
+  localStorage.removeItem('kbn_pi_cache_v1');
+  TOKEN = null;
+  USER = null;
+  location.reload();
+}
+
+    
     function loadStaffAndAudit() {
       // Staff logs
       run('getStaffLogs', [TOKEN], function (res) {
