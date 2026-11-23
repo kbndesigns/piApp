@@ -1,5 +1,4 @@
 // POST /api/rpc  { fn, args }
-// Proxies to GAS doPost with API_SECRET
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
@@ -16,9 +15,9 @@ module.exports = async (req, res) => {
     }
 
     const gasUrl = process.env.GAS_URL;
-    const secret = process.env.GAS_SECRET;
+    const secret = process.env.GAS_SECRET || process.env.API_SECRET;
     if (!gasUrl || !secret) {
-      return res.status(500).json({ success: false, message: 'GAS_URL or GAS_SECRET not configured' });
+      return res.status(500).json({ success: false, message: 'GAS not configured' });
     }
 
     const controller = new AbortController();
@@ -34,23 +33,16 @@ module.exports = async (req, res) => {
 
     clearTimeout(timeout);
 
-    const data = await r.json();
+    const text = await r.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      return res.status(200).json({ success: false, message: 'Invalid GAS response' });
+    }
     return res.status(200).json(data);
   } catch (e) {
-    const msg = e.name === 'AbortError' ? 'Request timed out' : (e.message || 'Server error');
+    const msg = e.name === 'AbortError' ? 'Timeout' : (e.message || 'Error');
     return res.status(200).json({ success: false, message: msg });
   }
 };
-
-
-const { cached } = require('./_cache');
-
-// Inside handler, for read functions:
-if (['getInitialData', 'getStaffLogs', 'getAuditLogs'].includes(fn)) {
-  const result = await cached(fn, args, async () => {
-    // existing GAS call
-    const r = await fetch(gasUrl, { ... });
-    return r.json();
-  });
-  return res.json(result);
-}
