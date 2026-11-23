@@ -1,18 +1,18 @@
-// GET /api/sync?bump=1&secret=...
-// Called by GAS after any write. Pulls getSnapshot from GAS and saves to Firebase.
-// Env: GAS_URL, GAS_SECRET, SYNC_SECRET, FIREBASE_*
-
 const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
-  const key = process.env.FIREBASE_PRIVATE_KEY || '';
-  admin.initializeApp({
-    credential: admin.credential.cert({
+  let cred;
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    cred = admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT));
+  } else {
+    const key = process.env.FIREBASE_PRIVATE_KEY || '';
+    cred = admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: key.replace(/\\n/g, '\n')
-    })
-  });
+    });
+  }
+  admin.initializeApp({ credential: cred });
 }
 const db = admin.firestore();
 
@@ -24,7 +24,6 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Call GAS getSnapshot (system)
     const gasUrl = process.env.GAS_URL;
     const gasSecret = process.env.GAS_SECRET;
     if (!gasUrl || !gasSecret) {
@@ -38,28 +37,18 @@ module.exports = async (req, res) => {
     });
     const snap = await r.json();
     if (!snap || snap.success === false) {
-      return res.status(200).json({ success: false, message: (snap && snap.message) || 'getSnapshot failed' });
+      return res.status(200).json({ success: false, message: snap && snap.message || 'GAS snapshot failed' });
     }
 
-    const now = Date.now();
-    await db.collection('piapp_snap').doc('latest').set({
-      ...snap,
-      savedAt: now
-    });
+    await db.collection('piapp_snap').doc('latest').set(snap);
     await db.collection('piapp_meta').doc('sync').set({
-      lastSyncAt: now,
-      builtAt: snap.builtAt || null,
-      piCount: (snap.pis || []).length,
-      paymentCount: (snap.payments || []).length
-    }, { merge: true });
-
-    return res.status(200).json({
-      success: true,
-      saved: true,
+      lastSync: new Date().toISOString(),
       piCount: (snap.pis || []).length,
       paymentCount: (snap.payments || []).length
     });
+
+    return res.status(200).json({ success: true, synced: true });
   } catch (e) {
-    return res.status(200).json({ success: false, message: e.message || 'Sync failed' });
+    return res.status(200).json({ success: false, message: e.message });
   }
 };
