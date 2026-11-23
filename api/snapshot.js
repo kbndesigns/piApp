@@ -16,7 +16,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 module.exports = async (req, res) => {
-  res.setHeader('Cache-Control', 'public, max-age=30');
+res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
   if (req.method !== 'GET') return res.status(405).json({ success: false });
 
   try {
