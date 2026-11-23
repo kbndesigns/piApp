@@ -52,3 +52,8 @@ module.exports = async (req, res) => {
     return res.status(200).json({ success: false, message: e.message });
   }
 };
+
+// Clear cache on sync
+const cache = db().collection('pi_cache');
+const docs = await cache.listDocuments();
+await Promise.all(docs.map(d => d.delete()));
