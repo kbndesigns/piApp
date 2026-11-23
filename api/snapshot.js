@@ -1,18 +1,18 @@
-// GET /api/snapshot  → returns latest data from Firebase (fast reads)
-// Requires env: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
-// Collection: pi_snapshots / latest
-
 const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
-  const key = process.env.FIREBASE_PRIVATE_KEY || '';
-  admin.initializeApp({
-    credential: admin.credential.cert({
+  let cred;
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    cred = admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT));
+  } else {
+    const key = process.env.FIREBASE_PRIVATE_KEY || '';
+    cred = admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: key.replace(/\\n/g, '\n')
-    })
-  });
+    });
+  }
+  admin.initializeApp({ credential: cred });
 }
 const db = admin.firestore();
 
@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
   try {
     const doc = await db.collection('piapp_snap').doc('latest').get();
     if (!doc.exists) {
-      return res.status(200).json({ success: false, message: 'No snapshot yet. Trigger a write or manual sync.' });
+      return res.status(200).json({ success: false, message: 'No snapshot yet' });
     }
     const data = doc.data() || {};
     return res.status(200).json({ success: true, ...data });
