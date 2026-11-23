@@ -17,6 +17,38 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
+/* PI column — force single line (Proforma Invoices & Payments) */
+#card-pis table th:nth-child(3),
+#card-pis table td:nth-child(3),
+#card-payments table th:nth-child(3),
+#card-payments table td:nth-child(3) {
+  white-space: nowrap !important;
+  min-width: 110px;
+  max-width: none !important;
+  word-break: keep-all;
+}
+
+/* All other cells: wrap text */
+#card-pis table td,
+#card-payments table td,
+#card-staff table td,
+#card-logs table td {
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 220px;
+  vertical-align: top;
+}
+
+/* PI column override (keep single line) */
+#card-pis table td:nth-child(3),
+#card-payments table td:nth-child(3) {
+  white-space: nowrap !important;
+  max-width: none !important;
+  word-break: keep-all !important;
+}
+    
     :root {
       --navy: #0f172a;
       --navy-2: #1e293b;
