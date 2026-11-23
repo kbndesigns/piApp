@@ -3954,6 +3954,21 @@ function loadData(forceGas) {
       });
     }
 
+
+
+    // Auto-login for returning users
+window.addEventListener('DOMContentLoaded', function () {
+var t = localStorage.getItem('kbn_pi_token');
+var u = localStorage.getItem('kbn_pi_user');
+if (t && u) {
+  TOKEN = t;
+  USER = JSON.parse(u);
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  loadData(false);
+}
+});
+
   </script>
 </body>
 
