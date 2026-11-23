@@ -2512,13 +2512,14 @@ function handleLogin(e) {
   });
   return false;
 }
-    function handleLogout() {
-      run('logout', [TOKEN], function () { });
-      TOKEN = ''; USER = null; localStorage.removeItem('kbn_token');
-      document.getElementById('appShell').className = 'app';
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('loginPassword').value = '';
-    }
+function handleLogout() {
+  localStorage.removeItem('kbn_pi_token');
+  localStorage.removeItem('kbn_pi_user');
+  localStorage.removeItem('kbn_pi_cache_v1');
+  TOKEN = null;
+  USER = null;
+  location.reload();
+}
     function showApp() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('appShell').className = 'app show';
@@ -3994,6 +3995,21 @@ if (t && u) {
   loadData(true); // force fresh from GAS
 }
 
+    // Restore session on page load
+(function () {
+  var t = localStorage.getItem('kbn_pi_token');
+  var u = localStorage.getItem('kbn_pi_user');
+  if (t && u) {
+    TOKEN = t;
+    try { USER = JSON.parse(u); } catch (e) { return; }
+    var loginWrap = document.getElementById('loginWrap');
+    var app = document.getElementById('appShell') || document.getElementById('app');
+    if (loginWrap) loginWrap.style.display = 'none';
+    if (app) app.classList.add('show');
+    if (typeof showApp === 'function') showApp();
+    if (typeof loadData === 'function') loadData(false);
+  }
+})();
     
   </script>
 </body>
