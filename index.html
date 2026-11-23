@@ -2479,19 +2479,35 @@
       i.innerHTML = t === 'dark' ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>' : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
     }
 
-    function handleLogin(e) {
-      e.preventDefault();
-      var email = document.getElementById('loginEmail').value.trim();
-      var pass = document.getElementById('loginPassword').value;
-      var err = document.getElementById('loginError'); err.className = 'login-error';
-      var btn = document.getElementById('loginBtn'); btn.disabled = true; btn.textContent = 'Signing in...';
-      run('authenticateUser', [email, pass], function (res) {
-        btn.disabled = false; btn.textContent = 'Sign in';
-        if (!res || !res.success) {err.textContent = (res && res.message) || 'Login failed'; err.className = 'login-error show'; return;}
-        TOKEN = res.token; USER = res.user; localStorage.setItem('kbn_token', TOKEN); showApp(); loadData(true);
-      });
-      return false;
+function handleLogin(e) {
+  e.preventDefault();
+  var email = document.getElementById('loginEmail').value.trim();
+  var pass = document.getElementById('loginPass').value;
+  var btn = document.getElementById('loginBtn');
+  var err = document.getElementById('loginError');
+  if (!email || !pass) { err.textContent = 'Email and password required'; err.classList.add('show'); return false; }
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  err.classList.remove('show');
+
+  run('authenticateUser', [email, pass], function (res) {
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+    if (res && res.success) {
+      TOKEN = res.token;
+      USER = res.user;
+      localStorage.setItem('kbn_pi_token', TOKEN);
+      localStorage.setItem('kbn_pi_user', JSON.stringify(USER));
+      showApp();
+      // Direct snapshot — no GAS
+      loadData(false);
+    } else {
+      err.textContent = (res && res.message) || 'Login failed';
+      err.classList.add('show');
     }
+  });
+  return false;
+}
     function handleLogout() {
       run('logout', [TOKEN], function () { });
       TOKEN = ''; USER = null; localStorage.removeItem('kbn_token');
@@ -2536,31 +2552,28 @@
 function loadData(forceGas) {
 // Force GAS until snapshot is fixed
   forceGas = true;
+  // Instant from cache
   if (!forceGas) {
     try {
       var cached = localStorage.getItem('kbn_pi_cache_v1');
       if (cached) {
         var parsed = JSON.parse(cached);
         if (parsed && parsed.success) {
-          USER = parsed.user || USER;
           DATA = parsed;
-          showApp();
           renderAll();
         }
       }
     } catch (e) {}
   }
 
-  var url = forceGas ? null : '/api/snapshot';
-  if (url) {
-    fetch(url)
+  // Snapshot (Firebase) — fast path
+  if (!forceGas) {
+    fetch('/api/snapshot')
       .then(function (r) { return r.json(); })
       .then(function (res) {
         if (res && res.success) {
-          USER = res.user || USER;
           DATA = res;
           try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(res)); } catch (e) {}
-          showApp();
           renderAll();
         } else {
           fetchFromGas();
@@ -2574,13 +2587,9 @@ function loadData(forceGas) {
   function fetchFromGas() {
     run('getInitialData', [TOKEN], function (gasRes) {
       if (gasRes && gasRes.success) {
-        USER = gasRes.user;
         DATA = gasRes;
         try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(gasRes)); } catch (e) {}
-        showApp();
         renderAll();
-      } else if (!DATA.pis || !DATA.pis.length) {
-        showToast((gasRes && gasRes.message) || 'Failed to load', true);
       }
     });
   }
