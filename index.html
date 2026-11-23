@@ -2482,7 +2482,7 @@
 function handleLogin(e) {
   e.preventDefault();
   var email = document.getElementById('loginEmail').value.trim();
-  var pass = document.getElementById('loginPass').value;
+  var pass = document.getElementById('loginPassword').value;
   var btn = document.getElementById('loginBtn');
   var err = document.getElementById('loginError');
   if (!email || !pass) { err.textContent = 'Email and password required'; err.classList.add('show'); return false; }
