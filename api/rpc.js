@@ -41,3 +41,16 @@ module.exports = async (req, res) => {
     return res.status(200).json({ success: false, message: msg });
   }
 };
+
+
+const { cached } = require('./_cache');
+
+// Inside handler, for read functions:
+if (['getInitialData', 'getStaffLogs', 'getAuditLogs'].includes(fn)) {
+  const result = await cached(fn, args, async () => {
+    // existing GAS call
+    const r = await fetch(gasUrl, { ... });
+    return r.json();
+  });
+  return res.json(result);
+}
