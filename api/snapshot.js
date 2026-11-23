@@ -5,11 +5,10 @@ if (!admin.apps.length) {
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     cred = admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT));
   } else {
-    const key = process.env.FIREBASE_PRIVATE_KEY || '';
     cred = admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: key.replace(/\\n/g, '\n')
+      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
     });
   }
   admin.initializeApp({ credential: cred });
@@ -17,17 +16,20 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 module.exports = async (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  if (req.method !== 'GET') return res.status(405).json({ success: false, message: 'GET only' });
+  res.setHeader('Cache-Control', 'public, max-age=30');
+  if (req.method !== 'GET') return res.status(405).json({ success: false });
 
   try {
     const doc = await db.collection('piapp_snap').doc('latest').get();
-    if (!doc.exists) {
-      return res.status(200).json({ success: false, message: 'No snapshot yet' });
-    }
+    if (!doc.exists) return res.status(200).json({ success: false, message: 'No snapshot' });
+    
     const data = doc.data() || {};
+    // Trim for speed — only essential fields
+    if (data.pis && data.pis.length > 200) {
+      data.pis = data.pis.slice(0, 200);
+    }
     return res.status(200).json({ success: true, ...data });
   } catch (e) {
-    return res.status(200).json({ success: false, message: e.message || 'Firebase error' });
+    return res.status(200).json({ success: false, message: e.message });
   }
 };
