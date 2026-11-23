@@ -2533,57 +2533,56 @@
       if (window.innerWidth > 900 && localStorage.getItem('kbn_sidebar') === 'collapsed') document.getElementById('sidebar').classList.add('collapsed');
     }
 
-    function loadData(forceGas) {
-      // Instant: show cached snapshot first (unless forcing fresh from GAS)
-      if (!forceGas) {
-        try {
-          var cached = localStorage.getItem('kbn_pi_cache_v1');
-          if (cached) {
-            var parsed = JSON.parse(cached);
-            if (parsed && parsed.success) {
-              USER = parsed.user || USER;
-              DATA = parsed;
-              showApp();
-              renderAll();
-            }
-          }
-        } catch (e) {}
+function loadData(forceGas) {
+  if (!forceGas) {
+    try {
+      var cached = localStorage.getItem('kbn_pi_cache_v1');
+      if (cached) {
+        var parsed = JSON.parse(cached);
+        if (parsed && parsed.success) {
+          USER = parsed.user || USER;
+          DATA = parsed;
+          showApp();
+          renderAll();
+        }
       }
+    } catch (e) {}
+  }
 
-      var url = forceGas ? null : '/api/snapshot';
-      if (url) {
-        fetch(url)
-          .then(function (r) { return r.json(); })
-          .then(function (res) {
-            if (res && res.success) {
-              USER = res.user || USER;
-              DATA = res;
-              try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(res)); } catch (e) {}
-              showApp();
-              renderAll();
-            } else {
-              fetchFromGas();
-            }
-          })
-          .catch(function () { fetchFromGas(); });
-      } else {
-        fetchFromGas();
-      }
+  var url = forceGas ? null : '/api/snapshot';
+  if (url) {
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && res.success) {
+          USER = res.user || USER;
+          DATA = res;
+          try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(res)); } catch (e) {}
+          showApp();
+          renderAll();
+        } else {
+          fetchFromGas();
+        }
+      })
+      .catch(function () { fetchFromGas(); });
+  } else {
+    fetchFromGas();
+  }
 
-      function fetchFromGas() {
-        run('getInitialData', [TOKEN], function (gasRes) {
-          if (gasRes && gasRes.success) {
-            USER = gasRes.user;
-            DATA = gasRes;
-            try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(gasRes)); } catch (e) {}
-            showApp();
-            renderAll();
-          } else if (!DATA.pis || !DATA.pis.length) {
-            showToast((gasRes && gasRes.message) || 'Failed to load', true);
-          }
-        });
+  function fetchFromGas() {
+    run('getInitialData', [TOKEN], function (gasRes) {
+      if (gasRes && gasRes.success) {
+        USER = gasRes.user;
+        DATA = gasRes;
+        try { localStorage.setItem('kbn_pi_cache_v1', JSON.stringify(gasRes)); } catch (e) {}
+        showApp();
+        renderAll();
+      } else if (!DATA.pis || !DATA.pis.length) {
+        showToast((gasRes && gasRes.message) || 'Failed to load', true);
       }
-    }
+    });
+  }
+}
 
     function loadStaffAndAudit() {
       // Staff logs
