@@ -1807,6 +1807,10 @@
           </svg></button>
         <h1 class="page-title" id="pageTitle">Dashboard</h1>
         <div class="topbar-actions">
+          <button class="icon-btn" onclick="clearCache()" title="Clear Cache">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+</button>
+          
           <button class="btn-print no-print" onclick="printCurrentView()" title="Print">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 6 2 18 2 18 9" />
@@ -3969,6 +3973,14 @@ if (t && u) {
 }
 });
 
+
+    function clearCache() {
+  localStorage.removeItem('kbn_pi_cache_v1');
+  showToast('Cache cleared');
+  loadData(true); // force fresh from GAS
+}
+
+    
   </script>
 </body>
 
